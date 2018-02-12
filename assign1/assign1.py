@@ -1,4 +1,7 @@
 import math
+from scipy.stats import norm
+import matplotlib.pyplot as plt
+
 
 class binomialTree:
     def __init__(self, depth, strike_price, start,
@@ -11,6 +14,7 @@ class binomialTree:
         self.u = math.e**(volatility*math.sqrt(1.0/depth)) # up factor
         self.d = 1/self.u # down factor
         self.r = interest # interest rate
+        self.volatility = volatility
         self.T = maturity # maturity of the stock
         self.type = option_type # call or put option
         # up or down probability
@@ -43,6 +47,8 @@ class binomialTree:
         while(self.step > 1):
             self.tree_step();
 
+        return self.tree[0]
+
     def determine_option_value(self, S, K, type):
         if(type == "call"):
             value = S - K
@@ -61,13 +67,52 @@ class binomialTree:
         for i in range(len(self.tree)):
             print(self.tree[i].price, self.tree[i].payoff)
 
+    def black_scholes(self):
+        # https://www.investopedia.com/university/options-pricing/black-scholes-model.asp
+        d1 = (math.log(self.start/self.strike_price)+ \
+                        (self.r+0.5*self.volatility**2)*self.T)/\
+                        (self.volatility*math.sqrt(self.T))
+        d2 = d1 - self.volatility * math.sqrt(self.T)
+        C = self.start*norm.cdf(d1) - \
+            norm.cdf(d2) * self.strike_price * math.e**(-self.r*self.T)
+        return C
 
 class node:
     def __init__(self, S, payoff):
         self.price = S
         self.payoff = payoff
 
+def accuracy_analysis(analytical_value):
+    estimates = []
+    for i in range(2,100):
+        BT = binomialTree(i, 99, 100, 0.06, 0.2, 1.0)
+        estimate = BT.run_model()
+        estimates.append(abs(estimate.payoff-analytical_value))
+
+    plt.figure()
+    plt.xlabel("tree depth")
+    plt.ylabel("Absolute error")
+    plt.title("Absolute error vs binomial tree depth")
+    plt.plot(estimates)
+    plt.show()
+
+def volatility_influence(analytical_value):
+    values = []
+    for i in range(1,101):
+        BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0)
+        estimate = BT.run_model()
+        values.append(abs(estimate.payoff-analytical_value))
+
+    plt.figure()
+    plt.xlabel("volatility")
+    plt.ylabel("Absolute error")
+    plt.title("Absolute error vs volatility")
+    plt.plot(values)
+    plt.show()
+
 if __name__ == '__main__':
     BT = binomialTree(50, 99, 100, 0.06, 0.2, 1.0)
-    BT.run_model()
-    BT.print_tree()
+    analytical_value = BT.black_scholes()
+    estimate = BT.run_model()
+    accuracy_analysis(analytical_value)
+    volatility_influence(analytical_value)
