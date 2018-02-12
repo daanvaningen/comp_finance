@@ -1,19 +1,24 @@
 import math
 
 class binomialTree:
-    def __init__(self, depth, strike_price, start, interest, volatility, maturity):
-        self.tree = []
-        self.u = 1 + volatility
-        self.d = 1 - volatility
-        self.r = interest
-        self.T = maturity
-        self.step = depth
-        self.start = start
+    def __init__(self, depth, strike_price, start,
+                    interest, volatility, maturity, option_type="call"):
+        self.tree = [] # array that stores the 'tree nodes' per iteration
+        self.step = depth + 1 # 3th level 4 nodes 4th level 5 nodes etc.
+        self.dt = float(maturity)/depth # delta t, timestep size
+        self.start = start # start price of stock
+        self.strike_price = strike_price # strike price
+        self.u = math.e**(volatility*math.sqrt(1.0/depth)) # up factor
+        self.d = 1/self.u # down factor
+        self.r = interest # interest rate
+        self.T = maturity # maturity of the stock
+        self.type = option_type # call or put option
+        # up or down probability
+        self.p = (math.e**(self.r*self.dt) - self.d)/(self.u - self.d)
+        # Initialize nodes and payoffs
         for i in range(self.step):
-            price = start*self.u**(self.step-1-i)*self.d**i
-            payoff = price - strike_price
-            if(payoff < 0):
-                payoff = 0
+            price = self.start*self.u**(self.step-1-i)*self.d**i
+            payoff = self.determine_option_value(price, self.strike_price,self.type)
             startnode = node(price, payoff)
             self.tree.append(startnode)
 
@@ -23,21 +28,34 @@ class binomialTree:
         for i in range(self.step):
             upstate = self.tree[i]
             downstate = self.tree[i+1]
-            delta = (upstate.payoff - downstate.payoff) / (upstate.price - downstate.price)
-            portfolio_price = delta*upstate.price - upstate.payoff
-            portfolio_PV = portfolio_price * math.e**(-self.r*self.T)
+            # calculate price of new node via direct formula
             price = self.start*self.u**(self.step-1-i)*self.d**i
-            newNode = node(price, portfolio_PV)
-            new_tree.append(newNode)
+            # risk free price of option at that node
+            f = (self.p*upstate.payoff + (1 - self.p)*
+                downstate.payoff)*math.e**(-self.r*self.dt)
+            new_node = node(price, f)
+            new_tree.append(new_node)
 
-        self.tree = new_tree
-
-        if(self.step == 1):
-            print("Value of option: ", delta*self.start - portfolio_PV)
+        self.tree = new_tree # replace old nodes
 
     def run_model(self):
+        # run model untill there is only one node
         while(self.step > 1):
             self.tree_step();
+
+    def determine_option_value(self, S, K, type):
+        if(type == "call"):
+            value = S - K
+            if(value > 0):
+                return value
+            else:
+                return 0
+        else:
+            value = K - S
+            if(value > 0):
+                return value
+            else:
+                return 0
 
     def print_tree(self):
         for i in range(len(self.tree)):
@@ -50,6 +68,6 @@ class node:
         self.payoff = payoff
 
 if __name__ == '__main__':
-    BT = binomialTree(50, 99, 100, 0.06, 0.2, 1)
-    BT.print_tree()
+    BT = binomialTree(50, 99, 100, 0.06, 0.2, 1.0)
     BT.run_model()
+    BT.print_tree()
