@@ -37,7 +37,8 @@ class binomialTree:
             # risk free price of option at that node
             f = (self.p*upstate.payoff + (1 - self.p)*
                 downstate.payoff)*math.e**(-self.r*self.dt)
-            new_node = node(price, f)
+            delta = (upstate.payoff - downstate.payoff) / (upstate.price - downstate.price)
+            new_node = node(price, f, delta)
             new_tree.append(new_node)
 
         self.tree = new_tree # replace old nodes
@@ -78,9 +79,10 @@ class binomialTree:
         return C
 
 class node:
-    def __init__(self, S, payoff):
+    def __init__(self, S, payoff, delta=0):
         self.price = S
         self.payoff = payoff
+        self.delta = delta
 
 def accuracy_analysis(analytical_value):
     estimates = []
@@ -93,13 +95,15 @@ def accuracy_analysis(analytical_value):
     plt.xlabel("tree depth")
     plt.ylabel("Absolute error")
     plt.title("Absolute error vs binomial tree depth")
+    # plt.yscale('log')
     plt.plot(estimates)
     plt.show()
 
-def volatility_influence(analytical_value):
+def volatility_influence():
     values = []
     for i in range(1,101):
         BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0)
+        analytical_value = BT.black_scholes()
         estimate = BT.run_model()
         values.append(abs(estimate.payoff-analytical_value))
 
@@ -111,8 +115,12 @@ def volatility_influence(analytical_value):
     plt.show()
 
 if __name__ == '__main__':
-    BT = binomialTree(50, 99, 100, 0.06, 0.2, 1.0)
+    BT = binomialTree(1, 99, 100, 0.06, 0.2, 1.0)
     analytical_value = BT.black_scholes()
     estimate = BT.run_model()
+    # print(estimate.delta)
+    # print(delta*122)
+    # print(analytical_value)
+    # print(estimate.delta*100 - estimate.delta*81.873*math.e**(-0.06))
     accuracy_analysis(analytical_value)
-    volatility_influence(analytical_value)
+    volatility_influence()
