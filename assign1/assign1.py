@@ -1,7 +1,7 @@
 import math
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-
+import time
 
 class binomialTree:
     def __init__(self, depth, strike_price, start,
@@ -76,7 +76,7 @@ class binomialTree:
         d2 = d1 - self.volatility * math.sqrt(self.T)
         C = self.start*norm.cdf(d1) - \
             norm.cdf(d2) * self.strike_price * math.e**(-self.r*self.T)
-        return C
+        return C, d1, d2
 
 class node:
     def __init__(self, S, payoff, delta=0):
@@ -114,13 +114,41 @@ def volatility_influence():
     plt.plot(values)
     plt.show()
 
+def complexity_analysis():
+    values = []
+    for i in range(1, 500):
+        BT = binomialTree(i, 99, 100, 0.06, 0.2, 1.0)
+        time1 = time.time()
+        BT.run_model()
+        values.append(time.time() - time1)
+
+    plt.figure()
+    plt.plot(values)
+    plt.xlabel('Tree depth')
+    plt.ylabel('Time (s)')
+    plt.title('complexity analysis tree depth and execution time')
+    plt.show()
+
+def hedge_parameter_analysis():
+    BT_hedge = []
+    analytical_value = []
+    x = []
+    for i in range(1, 101, 2):
+        x.append(i)
+        BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0)
+        node = BT.run_model()
+        C, d1, d2 = BT.black_scholes()
+        analytical_value.append(norm.cdf(d1))
+        BT_hedge.append( node.delta)
+
+    plt.figure()
+    plt.title('Comparison Hedge paramater and analytical value')
+    plt.xlabel('Volatility')
+    plt.ylabel('Delta')
+    plt.plot(x, BT_hedge, 'r--', label="BT hedge value")
+    plt.plot(x, analytical_value, 'b.', label="analytical value")
+    plt.legend()
+    plt.show()
+
 if __name__ == '__main__':
-    BT = binomialTree(1, 99, 100, 0.06, 0.2, 1.0)
-    analytical_value = BT.black_scholes()
-    estimate = BT.run_model()
-    # print(estimate.delta)
-    # print(delta*122)
-    # print(analytical_value)
-    # print(estimate.delta*100 - estimate.delta*81.873*math.e**(-0.06))
-    accuracy_analysis(analytical_value)
-    volatility_influence()
+    hedge_parameter_analysis()
