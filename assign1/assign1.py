@@ -1,7 +1,15 @@
 import math
 from scipy.stats import norm
+import numpy as np
 import matplotlib.pyplot as plt
 import time
+
+american = False
+
+def max(a,b):
+    if(a > b):
+        return a
+    return b
 
 class binomialTree:
     def __init__(self, depth, strike_price, start,
@@ -37,6 +45,8 @@ class binomialTree:
             # risk free price of option at that node
             f = (self.p*upstate.payoff + (1 - self.p)*
                 downstate.payoff)*math.e**(-self.r*self.dt)
+            if(american):
+                f = max(f, price - self.strike_price)
             delta = (upstate.payoff - downstate.payoff) / (upstate.price - downstate.price)
             new_node = node(price, f, delta)
             new_tree.append(new_node)
@@ -99,6 +109,25 @@ def accuracy_analysis(analytical_value):
     plt.plot(estimates)
     plt.show()
 
+class hedging_simulation:
+    def __init__(self, r, S, dt, sigma, delta):
+        self.r = r
+        self.S = S
+        self.dt = dt/365.0
+        self.sigma = sigma
+        self.delta = delta
+
+    def run_sim(self):
+        values = []
+        randoms = np.random.normal(0, 1, 10000)
+        for random in randoms:
+            S = self.r*self.S*self.dt + self.sigma*self.S*random*math.sqrt(self.dt)
+            values.append(S)
+
+        plt.figure()
+        plt.hist(randoms, edgecolor='black', bins=50)
+        plt.show()
+
 def volatility_influence():
     values = []
     for i in range(1,101):
@@ -151,4 +180,12 @@ def hedge_parameter_analysis():
     plt.show()
 
 if __name__ == '__main__':
-    hedge_parameter_analysis()
+    # complexity_analysis()
+    # hedge_parameter_analysis()
+    american = False
+    BT = binomialTree(50, 99, 100, 0.06, 0.2, 1.0)
+    last_node = BT.run_model()
+    HS1 = hedging_simulation(0.06, 100, 1, 0.2, last_node.delta)
+    HS1.run_sim()
+    HS2 = hedging_simulation(0.06, 100, 7, 0.2, last_node.delta)
+    HS2.run_sim()
