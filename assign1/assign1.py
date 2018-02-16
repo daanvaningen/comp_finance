@@ -45,8 +45,10 @@ class binomialTree:
             # risk free price of option at that node
             f = (self.p*upstate.payoff + (1 - self.p)*
                 downstate.payoff)*math.e**(-self.r*self.dt)
-            if(american):
+            if(american and self.type == "call"):
                 f = max(f, price - self.strike_price)
+            elif(american and self.type != "call"):
+                f = max(f, self.strike_price - price)
             delta = (upstate.payoff - downstate.payoff) / (upstate.price - downstate.price)
             new_node = node(price, f, delta)
             new_tree.append(new_node)
@@ -56,6 +58,7 @@ class binomialTree:
     def run_model(self):
         # run model untill there is only one node
         while(self.step > 1):
+            # self.print_tree()
             self.tree_step();
 
         return self.tree[0]
@@ -131,15 +134,15 @@ class hedging_simulation:
 def volatility_influence():
     values = []
     for i in range(1,101):
-        BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0)
-        analytical_value = BT.black_scholes()
+        BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0, option_type='p')
+        analytical_value, d1, d2 = BT.black_scholes()
         estimate = BT.run_model()
         values.append(abs(estimate.payoff-analytical_value))
 
     plt.figure()
     plt.xlabel("volatility")
     plt.ylabel("Absolute error")
-    plt.title("Absolute error vs volatility")
+    plt.title("Absolute error vs volatility American put option")
     plt.plot(values)
     plt.show()
 
@@ -182,10 +185,9 @@ def hedge_parameter_analysis():
 if __name__ == '__main__':
     # complexity_analysis()
     # hedge_parameter_analysis()
-    american = False
-    BT = binomialTree(50, 99, 100, 0.06, 0.2, 1.0)
-    last_node = BT.run_model()
-    HS1 = hedging_simulation(0.06, 100, 1, 0.2, last_node.delta)
-    HS1.run_sim()
-    HS2 = hedging_simulation(0.06, 100, 7, 0.2, last_node.delta)
-    HS2.run_sim()
+    american = True
+    # volatility_influence()
+    BT = binomialTree(6, 99, 100, 0.06, 0.2, 1.0, option_type='p')
+    C, d1, d2 = BT.black_scholes()
+    estimate = BT.run_model()
+    print(estimate.payoff, C)
