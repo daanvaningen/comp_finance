@@ -135,6 +135,7 @@ def volatility_influence():
     values = []
     for i in range(1,101):
         BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0, option_type='put')
+        BT = binomialTree(50, 99, 100, 0.06, i/100.0, 1.0, option_type='p')
         analytical_value, d1, d2 = BT.black_scholes()
         estimate = BT.run_model()
         values.append(abs(estimate.payoff))
@@ -143,6 +144,9 @@ def volatility_influence():
     plt.xlabel("Volatility")
     plt.ylabel("Price")
     plt.title("Price vs volatility European put option")
+    plt.xlabel("volatility")
+    plt.ylabel("Absolute error")
+    plt.title("Absolute error vs volatility American put option")
     plt.plot(values)
     plt.show()
 
@@ -184,10 +188,17 @@ def hedge_parameter_analysis():
 
 if __name__ == '__main__':
     # complexity_analysis()
+<<<<<<< HEAD
     hedge_parameter_analysis()
     american = False
     volatility_influence()
     BT = binomialTree(6, 99, 100, 0.06, 0.2, 1.0, option_type='c')
+=======
+    # hedge_parameter_analysis()
+    american = True
+    # volatility_influence()
+    BT = binomialTree(6, 99, 100, 0.06, 0.2, 1.0, option_type='p')
+>>>>>>> bdf19c8529acd0929f93d7c9f483b89ea751d641
     C, d1, d2 = BT.black_scholes()
     estimate = BT.run_model()
     print(estimate.payoff, C)
